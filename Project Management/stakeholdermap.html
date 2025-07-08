@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stakeholder Map</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1"></script>
+    <style>
+        :root {
+            --bg-color: #f8f9fa;
+            --sidebar-bg: #ffffff;
+            --text-color: #212529;
+            --border-color: #dee2e6;
+            --input-bg: #ffffff;
+            --input-border: #ced4da;
+            --quadrant-label-color: rgba(0, 0, 0, 0.15);
+            --chart-grid-color: rgba(0, 0, 0, 0.1);
+            --chart-text-color: #666;
+            --chart-line-color: rgba(0, 0, 0, 0.2);
+            --notification-bg: #333;
+            --notification-text: #fff;
+        }
+
+        body.dark-mode {
+            --bg-color: #1a1a1a;
+            --sidebar-bg: #242424;
+            --text-color: #e0e0e0;
+            --border-color: #444;
+            --input-bg: #333;
+            --input-border: #555;
+            --quadrant-label-color: rgba(255, 255, 255, 0.1);
+            --chart-grid-color: rgba(255, 255, 255, 0.1);
+            --chart-text-color: #ccc;
+            --chart-line-color: rgba(255, 255, 255, 0.2);
+            --notification-bg: #eee;
+            --notification-text: #333;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            margin: 0;
+            height: 100vh;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            transition: background-color 0.3s, color 0.3s;
+        }
+        .sidebar {
+            width: 450px;
+            padding: 2rem;
+            background-color: var(--sidebar-bg);
+            box-shadow: 2px 0 5px rgba(0,0,0,0.05);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+        }
+        h1 {
+            border-bottom: 2px solid #6c757d;
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+        .table-container { flex-grow: 1; overflow-y: auto; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td {
+            padding: 0.8rem 0.5rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+        th { font-weight: 600; }
+        input {
+            width: 95%;
+            padding: 0.5rem;
+            border: 1px solid var(--input-border);
+            background-color: var(--input-bg);
+            color: var(--text-color);
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .remove-btn { background: none; border: none; color: #dc3545; cursor: pointer; font-size: 1.2rem; }
+        .action-btn {
+            margin-top: 0.5rem;
+            padding: 0.75rem;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 1rem;
+            cursor: pointer;
+            width: 100%;
+            transition: background-color 0.2s;
+        }
+        .add-row-btn { background-color: #007bff; }
+        .add-row-btn:hover { background-color: #0056b3; }
+        .toggle-theme-btn { background-color: #6c757d; }
+        .toggle-theme-btn:hover { background-color: #5a6268; }
+        .export-json-btn { background-color: #28a745; }
+        .export-json-btn:hover { background-color: #218838; }
+        .print-btn { background-color: #007bff; }
+        .print-btn:hover { background-color: #0056b3; }
+
+        .chart-container {
+            flex-grow: 1;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column; /* Changed to column for print order */
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        .quadrant-label {
+            position: absolute;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--quadrant-label-color);
+            pointer-events: none;
+        }
+        #label-manage-closely { top: 4%; right: 5%; }
+        #label-keep-satisfied { top: 4%; left: 5%; }
+        #label-monitor { bottom: 8%; left: 5%; }
+        #label-keep-informed { bottom: 8%; right: 5%; }
+
+        .drop-zone {
+            border: 2px dashed var(--border-color);
+            border-radius: 5px;
+            padding: 20px;
+            text-align: center;
+            margin-top: 1rem;
+            cursor: pointer;
+            color: var(--text-color);
+        }
+        .drop-zone.hover { background-color: #e9ecef; }
+
+        .notification {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: var(--notification-bg);
+            color: var(--notification-text);
+            padding: 10px 20px;
+            border-radius: 5px;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+        }
+        .notification.show { opacity: 1; }
+
+        @media print {
+            body {
+                display: block;
+                height: auto;
+                margin: 0;
+                padding: 0;
+                background-color: #fff;
+                color: #000;
+            }
+            .sidebar {
+                width: 100%;
+                box-shadow: none;
+                border: none;
+                padding: 0;
+                page-break-before: always; /* Ensure sidebar starts on a new page if needed */
+            }
+            .sidebar .action-btn, .sidebar .drop-zone, .sidebar #import-file-input { display: none; }
+            .chart-container {
+                width: 100%;
+                height: auto;
+                padding: 0;
+                display: block;
+                page-break-after: always; /* Ensure chart is on its own page */
+                order: -1; /* Print chart first */
+            }
+            .chart-container canvas { display: none; } /* Hide canvas during print */
+            .chart-container img { display: block; max-width: 100%; height: auto; } /* Show image for print */
+            h1, h2, th, td, input, .quadrant-label { color: #000 !important; }
+            input { border: none; background: transparent; }
+            body.dark-mode { --bg-color: #fff; --sidebar-bg: #fff; }
+        }
+    </style>
+</head>
+<body class="dark-mode">
+
+    <div class="sidebar">
+        <h1>Stakeholder List <span id="stakeholder-counter">(0)</span></h1>
+        <div class="table-container">
+            <table id="stakeholder-table">
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>Interesse</th>
+                        <th>Influenza</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        <button class="action-btn add-row-btn">Aggiungi Stakeholder</button>
+        <button class="action-btn toggle-theme-btn">Switch to Light Mode</button>
+        <button class="action-btn export-json-btn">Esporta JSON</button>
+        <button class="action-btn print-btn">Stampa Mappa</button>
+
+        <div class="drop-zone" id="drop-zone">
+            Trascina qui il file JSON o clicca per importare
+            <input type="file" id="import-file-input" accept=".json" style="display: none;">
+        </div>
+    </div>
+
+    <div class="chart-container">
+        <div id="label-keep-satisfied" class="quadrant-label">Keep Satisfied</div>
+        <div id="label-manage-closely" class="quadrant-label">Manage Closely</div>
+        <div id="label-monitor" class="quadrant-label">Monitor</div>
+        <div id="label-keep-informed" class="quadrant-label">Keep Informed</div>
+        <canvas id="stakeholder-chart"></canvas>
+        <img id="chart-print-image" style="display: none;">
+    </div>
+
+    <div id="notification-toast" class="notification"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log("Script loaded and DOMContentLoaded fired.");
+
+            const tableBody = document.querySelector('#stakeholder-table tbody');
+            const addRowBtn = document.querySelector('.add-row-btn');
+            const toggleBtn = document.querySelector('.toggle-theme-btn');
+            const exportJsonBtn = document.querySelector('.export-json-btn');
+            const printBtn = document.querySelector('.print-btn');
+            const counter = document.getElementById('stakeholder-counter');
+            const ctx = document.getElementById('stakeholder-chart').getContext('2d');
+            const chartPrintImage = document.getElementById('chart-print-image');
+            const dropZone = document.getElementById('drop-zone');
+            const importFileInput = document.getElementById('import-file-input');
+            const notificationToast = document.getElementById('notification-toast');
+            
+            // Register Chart.js plugins
+            Chart.register(ChartDataLabels);
+
+            let stakeholderChart;
+
+            const showNotification = (message, duration = 3000) => {
+                notificationToast.textContent = message;
+                notificationToast.classList.add('show');
+                setTimeout(() => {
+                    notificationToast.classList.remove('show');
+                }, duration);
+            };
+
+            const getChartOptions = (isDark) => {
+                const gridColor = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+                const textColor = isDark ? '#ccc' : '#666';
+                const lineColor = isDark ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.2)';
+
+                return {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        datalabels: { align: 'top', anchor: 'end', font: { weight: 'bold' }, formatter: (v) => v.label, color: isDark ? '#e0e0e0' : '#343a40' },
+                        legend: { display: false },
+                        tooltip: { callbacks: { label: (c) => `${c.raw.label}: (Interesse: ${c.raw.x}, Influenza: ${c.raw.y})` } },
+                        annotation: {
+                            annotations: {
+                                vLine: { type: 'line', xMin: 5, xMax: 5, borderColor: lineColor, borderWidth: 2, borderDash: [6, 6] },
+                                hLine: { type: 'line', yMin: 5, yMax: 5, borderColor: lineColor, borderWidth: 2, borderDash: [6, 6] }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { title: { display: true, text: 'Livello di Interesse', font: { size: 14 }, color: textColor }, min: 0, max: 10, ticks: { stepSize: 1, color: textColor }, grid: { color: gridColor } },
+                        y: { title: { display: true, text: 'Livello di Influenza', font: { size: 14 }, color: textColor }, min: 0, max: 10, ticks: { stepSize: 1, color: textColor }, grid: { color: gridColor } }
+                    }
+                };
+            };
+
+            const updateChart = () => {
+                const data = [];
+                tableBody.querySelectorAll('tr').forEach(row => {
+                    const name = row.cells[0].querySelector('input').value;
+                    const interest = parseFloat(row.cells[1].querySelector('input').value);
+                    const influence = parseFloat(row.cells[2].querySelector('input').value);
+                    if (name && !isNaN(interest) && !isNaN(influence)) {
+                        data.push({ x: interest, y: influence, label: name });
+                    }
+                });
+                stakeholderChart.data.datasets[0].data = data;
+                counter.textContent = `(${data.length})`;
+                stakeholderChart.update();
+            };
+
+            const applyTheme = (isDark) => {
+                document.body.classList.toggle('dark-mode', isDark);
+                toggleBtn.textContent = isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode';
+                stakeholderChart.options = getChartOptions(isDark);
+                stakeholderChart.update(); // Ensure chart updates with new options
+            };
+
+            const createRow = (name = '', interest = 5, influence = 5) => {
+                const row = tableBody.insertRow();
+                row.innerHTML = `
+                    <td><input type="text" value="${name}" placeholder="Nome..."></td>
+                    <td><input type="number" min="0" max="10" value="${interest}"></td>
+                    <td><input type="number" min="0" max="10" value="${influence}"></td>
+                    <td><button class="remove-btn">×</button></td>
+                `;
+                row.querySelectorAll('input').forEach(input => input.addEventListener('input', updateChart));
+                row.querySelector('.remove-btn').addEventListener('click', () => { row.remove(); updateChart(); });
+                updateChart(); // Update chart immediately after adding a row
+            };
+
+            const exportJson = () => {
+                const stakeholders = [];
+                tableBody.querySelectorAll('tr').forEach(row => {
+                    const name = row.cells[0].querySelector('input').value;
+                    const interest = parseFloat(row.cells[1].querySelector('input').value);
+                    const influence = parseFloat(row.cells[2].querySelector('input').value);
+                    if (name && !isNaN(interest) && !isNaN(influence)) {
+                        stakeholders.push({ name, interest, influence });
+                    }
+                });
+                const dataStr = JSON.stringify(stakeholders, null, 2);
+                const blob = new Blob([dataStr], { type: "application/json" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'stakeholders.json';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                showNotification("Dati stakeholder esportati con successo!");
+            };
+
+            const importJson = (jsonString) => {
+                try {
+                    const stakeholders = JSON.parse(jsonString);
+                    if (!Array.isArray(stakeholders)) {
+                        showNotification("Formato JSON non valido: deve essere un array.");
+                        return;
+                    }
+                    // Clear existing rows
+                    while (tableBody.firstChild) {
+                        tableBody.removeChild(tableBody.firstChild);
+                    }
+                    // Add imported rows
+                    stakeholders.forEach(s => {
+                        if (s.name && typeof s.interest === 'number' && typeof s.influence === 'number') {
+                            createRow(s.name, s.interest, s.influence);
+                        } else {
+                            console.warn("Skipping invalid stakeholder entry:", s);
+                        }
+                    });
+                    updateChart();
+                    showNotification("Dati stakeholder importati con successo!");
+                } catch (e) {
+                    showNotification("Errore durante l'importazione del file JSON: " + e.message);
+                    console.error("Import JSON error:", e);
+                }
+            };
+
+            // --- Initialisation ---
+            stakeholderChart = new Chart(ctx, {
+                type: 'scatter',
+                data: {
+                    datasets: [{
+                        backgroundColor: 'rgba(0, 123, 255, 0.7)',
+                        pointRadius: 8,
+                        pointHoverRadius: 12,
+                        data: [] // Initialize with empty data
+                    }]
+                },
+                options: getChartOptions(document.body.classList.contains('dark-mode'))
+            });
+
+            addRowBtn.addEventListener('click', () => createRow());
+            toggleBtn.addEventListener('click', () => applyTheme(!document.body.classList.contains('dark-mode')));
+            exportJsonBtn.addEventListener('click', exportJson);
+            printBtn.addEventListener('click', () => {
+                // Temporarily hide sidebar for print
+                document.querySelector('.sidebar').style.display = 'none';
+                // Convert chart to image for printing
+                chartPrintImage.src = stakeholderChart.toBase64Image();
+                chartPrintImage.style.display = 'block';
+                document.getElementById('stakeholder-chart').style.display = 'none';
+
+                window.print();
+
+                // Restore view after print dialog is closed
+                setTimeout(() => {
+                    document.querySelector('.sidebar').style.display = 'flex';
+                    chartPrintImage.style.display = 'none';
+                    document.getElementById('stakeholder-chart').style.display = 'block';
+                }, 500);
+            });
+
+            // Drop zone functionality
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.classList.add('hover');
+            });
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.classList.remove('hover');
+            });
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('hover');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    const file = files[0];
+                    if (file.type === "application/json") {
+                        const reader = new FileReader();
+                        reader.onload = (event) => importJson(event.target.result);
+                        reader.readAsText(file);
+                    } else {
+                        showNotification("Per favore, trascina un file JSON valido.");
+                    }
+                }
+            });
+            dropZone.addEventListener('click', () => importFileInput.click());
+            importFileInput.addEventListener('change', (e) => {
+                const files = e.target.files;
+                if (files.length > 0) {
+                    const file = files[0];
+                    if (file.type === "application/json") {
+                        const reader = new FileReader();
+                        reader.onload = (event) => importJson(event.target.result);
+                        reader.readAsText(file);
+                    } else {
+                        showNotification("Per favore, seleziona un file JSON valido.");
+                    }
+                }
+            });
+
+            // Initial state: Add example stakeholders and apply default theme
+            createRow('Stakeholder A', 2, 8); // Keep Satisfied
+            createRow('Stakeholder B', 8, 9); // Manage Closely
+            createRow('Stakeholder C', 1, 2); // Monitor
+            createRow('Stakeholder D', 9, 4); // Keep Informed
+            applyTheme(true); // Set dark mode as default
+        });
+    </script>
+
+</body>
+</html>
