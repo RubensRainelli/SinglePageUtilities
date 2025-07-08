@@ -1,0 +1,32 @@
+[
+  {
+    "name": "studenti",
+    "interest": 9,
+    "influence": 1
+  },
+  {
+    "name": "Docenti",
+    "interest": 9,
+    "influence": 7
+  },
+  {
+    "name": "Regione Lombardia",
+    "interest": 7,
+    "influence": 9
+  },
+  {
+    "name": "Epicode",
+    "interest": 8,
+    "influence": 8
+  },
+  {
+    "name": "Erogatori dei Corsi",
+    "interest": 4,
+    "influence": 4
+  },
+  {
+    "name": "PNRR",
+    "interest": 1,
+    "influence": 9
+  }
+]
