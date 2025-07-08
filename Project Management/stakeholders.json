@@ -1,0 +1,57 @@
+[
+  {
+    "name": "Pazienti",
+    "interest": 9,
+    "influence": 1
+  },
+  {
+    "name": "Dottori",
+    "interest": 8,
+    "influence": 9
+  },
+  {
+    "name": "Operatori sanitari",
+    "interest": 5,
+    "influence": 2
+  },
+  {
+    "name": "Team di Sviluppo",
+    "interest": 9,
+    "influence": 4
+  },
+  {
+    "name": "Customer Care",
+    "interest": 6,
+    "influence": 5
+  },
+  {
+    "name": "Chi Paga",
+    "interest": 2,
+    "influence": 9
+  },
+  {
+    "name": "Grafici",
+    "interest": 2,
+    "influence": 2
+  },
+  {
+    "name": "Comune",
+    "interest": 7,
+    "influence": 1
+  },
+  {
+    "name": "Marketing",
+    "interest": 3,
+    "influence": 1
+  },
+  {
+    "name": "Enti Regolatori",
+    "interest": 1,
+    "influence": 9
+  },
+  {
+    "name": "Tecnologie Preeseistenti",
+    "interest": 1,
+    "influence": 10
+  }
+]
