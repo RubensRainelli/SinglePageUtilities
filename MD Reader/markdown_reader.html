@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lettore Markdown Definitivo</title>
+    <link id="hljs-theme-light" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css" disabled>
+    <link id="hljs-theme-dark" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+
+    <style>
+        :root {
+            --bg-color-light: #f9f9f9; --text-color-light: #24292e; --border-color-light: #e1e4e8; --container-bg-light: #ffffff; --sidebar-bg-light: #f1f1f1; --link-color-light: #0366d6; --pre-bg-light: #f6f8fa; --highlight-bg-light: #fffbdd; --current-highlight-bg-light: #ffec80;
+            --bg-color-dark: #0d1117; --text-color-dark: #c9d1d9; --border-color-dark: #30363d; --container-bg-dark: #161b22; --sidebar-bg-dark: #1a1f27; --link-color-dark: #58a6ff; --pre-bg-dark: #161b22; --highlight-bg-dark: #4d4d00; --current-highlight-bg-dark: #8a8a00;
+        }
+        html, body { height: 100%; overflow: hidden; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; margin: 0; display: flex; background-color: var(--bg-color-dark); color: var(--text-color-dark); }
+        body.light-mode { background-color: var(--bg-color-light); color: var(--text-color-light); }
+
+        #toc-sidebar { width: 300px; height: 100%; position: fixed; top: 0; left: 0; padding: 20px; border-right: 1px solid var(--border-color-dark); display: flex; flex-direction: column; box-sizing: border-box; background-color: var(--sidebar-bg-dark); }
+        body.light-mode #toc-sidebar { background-color: var(--sidebar-bg-light); border-right-color: var(--border-color-light); }
+        #toc-sidebar h2, #toc-sidebar h3 { flex-shrink: 0; margin-top: 0; margin-bottom: 10px; border-bottom: 1px solid var(--border-color-dark); padding-bottom: 5px; }
+        body.light-mode #toc-sidebar h2, body.light-mode #toc-sidebar h3 { border-bottom-color: var(--border-color-light); }
+
+        #search-container { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; flex-shrink: 0; }
+        #search-input { flex-grow: 1; padding: 8px; border-radius: 5px; border: 1px solid var(--border-color-dark); background-color: var(--container-bg-dark); color: var(--text-color-dark); min-width: 0; }
+        body.light-mode #search-input { border-color: var(--border-color-light); background-color: var(--container-bg-light); color: var(--text-color-light); }
+        #search-nav button { background: none; border: 1px solid var(--border-color-dark); color: var(--text-color-dark); cursor: pointer; border-radius: 5px; padding: 4px 8px; }
+        body.light-mode #search-nav button { border-color: var(--border-color-light); color: var(--text-color-light); }
+        #search-count { font-size: 0.9em; white-space: nowrap; text-align: center; flex-basis: 100%; margin-top: 5px; }
+
+        #file-list-container { flex-shrink: 0; max-height: 35%; display: flex; flex-direction: column; margin-top: 15px; }
+        #file-list { list-style-type: none; padding: 0; margin: 0; cursor: grab; overflow-y: auto; }
+        #file-list li { padding: 8px; border-radius: 5px; margin-bottom: 5px; background-color: var(--container-bg-dark); border: 1px solid var(--border-color-dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; user-select: none; }
+        body.light-mode #file-list li { background-color: var(--container-bg-light); border-color: var(--border-color-light); }
+        #file-list li.dragging { opacity: 0.5; }
+
+        #toc-container { flex-grow: 1; display: flex; flex-direction: column; min-height: 0; margin-top: 15px; }
+        #toc-selector { width: 100%; padding: 8px; margin-bottom: 10px; border-radius: 5px; border: 1px solid var(--border-color-dark); background-color: var(--container-bg-dark); color: var(--text-color-dark); flex-shrink: 0; }
+        body.light-mode #toc-selector { border-color: var(--border-color-light); background-color: var(--container-bg-light); color: var(--text-color-light); }
+        #toc-list { list-style-type: none; padding: 0; margin: 0; overflow-y: auto; }
+        #toc-list a { text-decoration: none; display: block; padding: 5px 10px; border-radius: 5px; color: var(--text-color-dark); }
+        body.light-mode #toc-list a { color: var(--text-color-light); }
+        #toc-list a:hover { background-color: rgba(128, 128, 128, 0.2); }
+
+        #main-content { margin-left: 300px; padding: 20px 40px; width: calc(100% - 300px); box-sizing: border-box; height: 100%; display: flex; flex-direction: column; }
+        #main-content h1, #main-content > p { flex-shrink: 0; }
+        .main-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px; flex-shrink: 0; }
+        .file-controls, .action-buttons { display: flex; gap: 10px; align-items: center; }
+        .action-buttons button, #clear-session { padding: 8px 12px; border: 1px solid var(--border-color-dark); background-color: var(--container-bg-dark); color: var(--text-color-dark); cursor: pointer; border-radius: 5px; }
+        body.light-mode .action-buttons button, body.light-mode #clear-session { border-color: var(--border-color-light); background-color: var(--container-bg-light); color: var(--text-color-light); }
+
+        #content-area { flex-grow: 1; overflow-y: auto; }
+        .file-container { border: 1px solid var(--border-color-dark); border-radius: 6px; margin-bottom: 30px; background-color: var(--container-bg-dark); }
+        body.light-mode .file-container { border-color: var(--border-color-light); background-color: var(--container-bg-light); }
+        .file-header { padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color-dark); }
+        body.light-mode .file-header { border-bottom-color: var(--border-color-light); }
+        .file-header-main { cursor: pointer; display: flex; align-items: center; gap: 10px; flex-grow: 1; min-width: 0; }
+        .file-header h2 { margin: 0; font-size: 1.2em; border: none; color: var(--link-color-dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        body.light-mode .file-header h2 { color: var(--link-color-light); }
+        .toggle-icon { font-size: 1.2em; transition: transform 0.3s; }
+        .file-container.collapsed .toggle-icon { transform: rotate(-90deg); }
+        .close-file-btn { background: none; border: none; color: var(--text-color-dark); font-size: 1.5em; cursor: pointer; padding: 0 5px; line-height: 1; }
+        body.light-mode .close-file-btn { color: var(--text-color-light); }
+        .rendered-content { padding: 1px 20px 20px 20px; max-height: 2000px; overflow: hidden; transition: max-height 0.5s ease-in-out, padding 0.5s ease-in-out; }
+        .file-container.collapsed .rendered-content { max-height: 0; padding: 0 20px; }
+
+        mark.search-highlight { background-color: var(--highlight-bg-dark); color: #fff; border-radius: 3px; }
+        body.light-mode mark.search-highlight { background-color: var(--highlight-bg-light); color: #000; }
+        mark.current-match { background-color: var(--current-highlight-bg-dark); }
+        body.light-mode mark.current-match { background-color: var(--current-highlight-bg-light); }
+
+        .theme-switcher { position: fixed; top: 20px; right: 20px; display: flex; align-items: center; z-index: 1000; }
+        .theme-switcher span { margin: 0 8px; }
+        .switch { position: relative; display: inline-block; width: 50px; height: 28px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 28px; }
+        .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: #58a6ff; }
+        input:checked + .slider:before { transform: translateX(22px); }
+
+        #drop-zone { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 9999; display: none; justify-content: center; align-items: center; color: white; font-size: 2em; border: 5px dashed #fff; box-sizing: border-box; }
+        #drop-zone.visible { display: flex; }
+
+        @media print { body { display: block; color: #000 !important; background-color: #fff !important; } #toc-sidebar, .main-controls, .theme-switcher, .file-header .toggle-icon, pre .copy-btn, .close-file-btn { display: none !important; } #main-content { margin-left: 0; padding: 0; width: 100%; } .file-container { border: none; box-shadow: none; page-break-before: always; margin: 0; } .file-container:first-child { page-break-before: auto; } .file-header h2 { color: #000 !important; } a { color: #000 !important; text-decoration: underline; } pre { border: 1px solid #ccc; background-color: #f8f8f8 !important; } }
+    </style>
+</head>
+<body class="dark-mode">
+
+    <div id="toc-sidebar">
+        <h2>Strumenti</h2>
+        <div id="search-container">
+            <input type="search" id="search-input" placeholder="Cerca nei file...">
+            <div id="search-nav">
+                <button id="search-prev" title="Precedente">↑</button>
+                <button id="search-next" title="Successivo">↓</button>
+            </div>
+            <span id="search-count"></span>
+        </div>
+        <div id="file-list-container">
+            <h3>Elenco File (Trascina)</h3>
+            <ul id="file-list"></ul>
+        </div>
+        <div id="toc-container">
+            <h3>Indice del File</h3>
+            <select id="toc-selector"></select>
+            <ul id="toc-list"></ul>
+        </div>
+    </div>
+
+    <div id="main-content">
+        <div class="theme-switcher">
+            <span>☀️</span>
+            <label class="switch"><input type="checkbox" id="theme-toggle"><span class="slider"></span></label>
+            <span>🌙</span>
+        </div>
+        <h1>Lettore di File Markdown</h1>
+        <p>Seleziona o trascina qui uno o più file <code>.md</code>.</p>
+        <div class="main-controls">
+             <div class="file-controls">
+                <input type="file" id="file-input" multiple accept=".md,.markdown">
+                <button id="clear-session">Pulisci Sessione</button>
+            </div>
+            <div class="action-buttons">
+                <button id="export-html">Esporta in HTML</button>
+                <button id="print-page">Stampa</button>
+            </div>
+        </div>
+        <div id="content-area"></div>
+    </div>
+
+    <div id="drop-zone"><span>Rilascia i file qui</span></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- RIFERIMENTI DOM ---
+            const body = document.body;
+            const fileListEl = document.getElementById('file-list');
+            const contentArea = document.getElementById('content-area');
+            const tocSelector = document.getElementById('toc-selector');
+            const tocList = document.getElementById('toc-list');
+            const fileInput = document.getElementById('file-input');
+            const clearSessionBtn = document.getElementById('clear-session');
+            const themeToggle = document.getElementById('theme-toggle');
+            const dropZone = document.getElementById('drop-zone');
+            const searchInput = document.getElementById('search-input');
+            const searchCount = document.getElementById('search-count');
+            const searchPrev = document.getElementById('search-prev');
+            const searchNext = document.getElementById('search-next');
+            const exportBtn = document.getElementById('export-html');
+            const printBtn = document.getElementById('print-page');
+
+            // --- STATO APPLICAZIONE ---
+            let fileData = []; // Unica fonte di verità
+            let searchResults = [];
+            let currentMatchIndex = -1;
+
+            // --- FUNZIONE MASTER DI REDRAW ---
+            function redrawUI() {
+                const selectedFileId = tocSelector.options[tocSelector.selectedIndex]?.dataset.fileId;
+                
+                // 1. Lista File
+                fileListEl.innerHTML = '';
+                fileData.forEach(data => {
+                    const li = document.createElement('li');
+                    li.dataset.fileId = data.id;
+                    li.textContent = data.name;
+                    li.draggable = true;
+                    fileListEl.appendChild(li);
+                });
+
+                // 2. Contenuto Principale
+                contentArea.innerHTML = '';
+                fileData.forEach(data => {
+                    contentArea.appendChild(data.container);
+                });
+
+                // 3. Selettore ToC
+                tocSelector.innerHTML = '';
+                fileData.forEach((data, index) => {
+                    const option = document.createElement('option');
+                    option.value = index;
+                    option.textContent = data.name;
+                    option.dataset.fileId = data.id;
+                    tocSelector.appendChild(option);
+                });
+
+                // 4. ToC
+                if (fileData.length > 0) {
+                    const newIndex = fileData.findIndex(f => f.id === selectedFileId);
+                    tocSelector.value = newIndex !== -1 ? newIndex : 0;
+                    generateToc(parseInt(tocSelector.value, 10));
+                } else {
+                    tocList.innerHTML = '';
+                }
+                
+                saveFilesToStorage();
+                handleSearch(); // Riesegue la ricerca per mantenere l'evidenziazione
+            }
+
+            function generateToc(fileIndex) {
+                tocList.innerHTML = '';
+                if (fileIndex < 0 || fileIndex >= fileData.length) return;
+                const data = fileData[fileIndex];
+                if (!data) return;
+
+                const headers = data.container.querySelectorAll('h1, h2, h3, h4');
+                headers.forEach((header, i) => {
+                    const id = `header-${data.id}-${i}`;
+                    header.id = id;
+                    const a = document.createElement('a');
+                    a.href = `#${id}`;
+                    a.textContent = header.textContent;
+                    a.addEventListener('click', e => {
+                        e.preventDefault();
+                        header.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    });
+                    const li = document.createElement('li');
+                    li.appendChild(a);
+                    tocList.appendChild(li);
+                });
+            }
+
+            // --- GESTIONE DATI (modificano solo fileData) ---
+            function handleFiles(files) {
+                resetState();
+                const fileArray = Array.from(files).sort((a, b) => a.name.localeCompare(b.name));
+                if (fileArray.length === 0) return;
+                let processedCount = 0;
+                fileArray.forEach(file => {
+                    const reader = new FileReader();
+                    reader.onload = e => {
+                        addFileToData(file.name, e.target.result);
+                        processedCount++;
+                        if (processedCount === fileArray.length) {
+                            redrawUI();
+                        }
+                    };
+                    reader.readAsText(file);
+                });
+            }
+
+            function addFileToData(name, content) {
+                const id = `file-${Date.now()}-${Math.random()}`;
+                const container = document.createElement('div');
+                container.className = 'file-container';
+                container.id = id;
+                container.innerHTML = `
+                    <div class="file-header">
+                        <div class="file-header-main">
+                            <span class="toggle-icon">&#9660;</span>
+                            <h2>${name}</h2>
+                        </div>
+                        <button class="close-file-btn" title="Rimuovi file">&times;</button>
+                    </div>
+                    <div class="rendered-content">${marked.parse(content)}</div>
+                `;
+                container.querySelector('.file-header-main').addEventListener('click', () => container.classList.toggle('collapsed'));
+                container.querySelector('.close-file-btn').addEventListener('click', e => { e.stopPropagation(); removeFile(id); });
+                enhanceCodeBlocks(container.querySelector('.rendered-content'));
+                fileData.push({ id, name, content, container });
+            }
+
+            function removeFile(fileId) {
+                fileData = fileData.filter(f => f.id !== fileId);
+                redrawUI();
+            }
+
+            function resetState() {
+                fileData = [];
+                searchResults = [];
+                currentMatchIndex = -1;
+                searchInput.value = '';
+                searchCount.textContent = '';
+                redrawUI();
+            }
+
+            // --- GESTIONE RIORDINO ---
+            fileListEl.addEventListener('dragstart', e => e.target.classList.add('dragging'));
+            fileListEl.addEventListener('dragend', e => e.target.classList.remove('dragging'));
+            fileListEl.addEventListener('dragover', e => {
+                e.preventDefault();
+                const afterElement = getDragAfterElement(fileListEl, e.clientY);
+                const dragging = document.querySelector('.dragging');
+                if (dragging) {
+                    if (afterElement == null) fileListEl.appendChild(dragging);
+                    else fileListEl.insertBefore(dragging, afterElement);
+                }
+            });
+            fileListEl.addEventListener('drop', () => {
+                const newOrderedIds = [...fileListEl.querySelectorAll('li')].map(li => li.dataset.fileId);
+                fileData.sort((a, b) => newOrderedIds.indexOf(a.id) - newOrderedIds.indexOf(b.id));
+                redrawUI();
+            });
+            function getDragAfterElement(container, y) {
+                const draggableElements = [...container.querySelectorAll('li:not(.dragging)')];
+                return draggableElements.reduce((closest, child) => {
+                    const box = child.getBoundingClientRect();
+                    const offset = y - box.top - box.height / 2;
+                    if (offset < 0 && offset > closest.offset) return { offset: offset, element: child };
+                    else return closest;
+                }, { offset: Number.NEGATIVE_INFINITY }).element;
+            }
+
+            // --- FUNZIONALITÀ VARIE ---
+            function enhanceCodeBlocks(container) { container.querySelectorAll('pre').forEach(pre => { const code = pre.querySelector('code'); if (code) hljs.highlightElement(code); const copyButton = document.createElement('button'); copyButton.className = 'copy-btn'; copyButton.textContent = 'Copia'; pre.appendChild(copyButton); copyButton.addEventListener('click', () => { navigator.clipboard.writeText(code ? code.innerText : pre.innerText).then(() => { copyButton.textContent = 'Copiato!'; setTimeout(() => { copyButton.textContent = 'Copia'; }, 2000); }); }); }); }
+            function applyTheme(theme) { body.className = theme; themeToggle.checked = theme === 'light-mode'; document.getElementById('hljs-theme-dark').disabled = theme === 'light-mode'; document.getElementById('hljs-theme-light').disabled = theme === 'dark-mode'; localStorage.setItem('theme', theme); }
+            function handleSearch() { const query = searchInput.value.trim(); searchResults = []; currentMatchIndex = -1; fileData.forEach(data => { const contentDiv = data.container.querySelector('.rendered-content'); contentDiv.innerHTML = marked.parse(data.content); enhanceCodeBlocks(contentDiv); }); if (query.length < 2) { searchCount.textContent = ''; return; } const regex = new RegExp(`(${query})`, 'gi'); let totalMatches = 0; fileData.forEach(data => { const contentDiv = data.container.querySelector('.rendered-content'); const textNodes = getTextNodes(contentDiv); let hasMatch = false; textNodes.forEach(node => { if (node.textContent.match(regex)) { hasMatch = true; const newNode = document.createElement('span'); newNode.innerHTML = node.textContent.replace(regex, `<mark class="search-highlight">$1</mark>`); node.parentNode.replaceChild(newNode, node); } }); if (hasMatch) data.container.classList.remove('collapsed'); }); searchResults = contentArea.querySelectorAll('mark.search-highlight'); updateSearchCount(); if (searchResults.length > 0) { currentMatchIndex = 0; navigateToCurrentMatch(); } }
+            function getTextNodes(node) { let all = []; for (node = node.firstChild; node; node = node.nextSibling) { if (node.nodeType == 3) all.push(node); else if (node.nodeName !== 'PRE' && node.nodeName !== 'CODE') all = all.concat(getTextNodes(node)); } return all; }
+            function navigateToCurrentMatch() { searchResults.forEach((mark, index) => mark.classList.toggle('current-match', index === currentMatchIndex)); const currentMark = searchResults[currentMatchIndex]; if (currentMark) currentMark.scrollIntoView({ behavior: 'smooth', block: 'center' }); updateSearchCount(); }
+            function updateSearchCount() { if (searchResults.length > 0) searchCount.textContent = `${currentMatchIndex + 1} di ${searchResults.length}`; else if (searchInput.value.length > 1) searchCount.textContent = '0 trovate'; else searchCount.textContent = ''; }
+            function exportToHtml() { /* ... (logica export) ... */ }
+
+            // --- LOCAL STORAGE ---
+            function saveFilesToStorage() { const filesToSave = fileData.map(data => ({ name: data.name, content: data.content })); localStorage.setItem('markdown_files', JSON.stringify(filesToSave)); }
+            function loadFilesFromStorage() { const storedFiles = localStorage.getItem('markdown_files'); if (storedFiles) { const files = JSON.parse(storedFiles); if (files.length > 0) { resetState(); files.forEach(file => addFileToData(file.name, file.content)); redrawUI(); } } }
+
+            // --- INIZIALIZZAZIONE LISTENER ---
+            fileInput.addEventListener('change', e => handleFiles(e.target.files));
+            clearSessionBtn.addEventListener('click', () => { localStorage.removeItem('markdown_files'); resetState(); });
+            tocSelector.addEventListener('change', () => generateToc(parseInt(tocSelector.value, 10)));
+            themeToggle.addEventListener('change', () => applyTheme(themeToggle.checked ? 'light-mode' : 'dark-mode'));
+            body.addEventListener('drop', e => handleFiles(e.dataTransfer.files));
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eName => body.addEventListener(eName, e => { e.preventDefault(); e.stopPropagation(); }));
+            ['dragenter', 'dragover'].forEach(eName => body.addEventListener(eName, () => dropZone.classList.add('visible')));
+            ['dragleave', 'drop'].forEach(eName => body.addEventListener(eName, () => dropZone.classList.remove('visible')));
+            searchInput.addEventListener('input', handleSearch);
+            searchPrev.addEventListener('click', () => { if (searchResults.length > 0) { currentMatchIndex = (currentMatchIndex - 1 + searchResults.length) % searchResults.length; navigateToCurrentMatch(); } });
+            searchNext.addEventListener('click', () => { if (searchResults.length > 0) { currentMatchIndex = (currentMatchIndex + 1) % searchResults.length; navigateToCurrentMatch(); } });
+            printBtn.addEventListener('click', () => window.print());
+            exportBtn.addEventListener('click', exportToHtml);
+
+            // --- AVVIO ---
+            applyTheme(localStorage.getItem('theme') || 'dark-mode');
+            loadFilesFromStorage();
+        });
+    </script>
+
+</body>
+</html>

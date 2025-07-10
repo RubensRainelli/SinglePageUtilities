@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lettore Markdown Strutturato</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div id="toc-sidebar">
+        <h2>Strumenti</h2>
+        <div id="search-container">
+            <input type="search" id="search-input" placeholder="Cerca nei file...">
+            <div id="search-nav">
+                <button id="search-prev" title="Precedente">↑</button>
+                <button id="search-next" title="Successivo">↓</button>
+            </div>
+            <span id="search-count"></span>
+        </div>
+        <div id="file-list-container">
+            <h3>Elenco File (Trascina)</h3>
+            <ul id="file-list"></ul>
+        </div>
+        <div id="toc-container">
+            <h3>Indice del File</h3>
+            <select id="toc-selector"></select>
+            <ul id="toc-list"></ul>
+        </div>
+        <button id="sidebar-toggle" title="Nascondi/Mostra Sidebar"><span>&lt;</span></button>
+    </div>
+
+    <div id="main-content">
+        <div class="theme-switcher">
+            <span>☀️</span>
+            <label class="switch">
+                <input type="checkbox" id="theme-toggle">
+                <span class="slider"></span>
+            </label>
+            <span>🌙</span>
+        </div>
+        <h1>Lettore di File Markdown</h1>
+        <p>Seleziona o trascina qui uno o più file <code>.md</code>.</p>
+        <div class="main-controls">
+             <div class="file-controls">
+                <input type="file" id="file-input" multiple accept=".md,.markdown">
+                <button id="clear-session">Pulisci Sessione</button>
+            </div>
+            <div class="action-buttons">
+                <button id="export-html">Esporta in HTML</button>
+                <button id="print-page">Stampa</button>
+            </div>
+        </div>
+        <div id="content-area"></div>
+    </div>
+
+    <div id="drop-zone"><span>Rilascia i file qui</span></div>
+
+    <!-- Librerie Esterne -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <!-- Logica Applicazione -->
+    <script src="main.js"></script>
+
+</body>
+</html>

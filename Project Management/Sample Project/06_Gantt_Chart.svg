@@ -1,0 +1,133 @@
+<svg width="1200" height="800" xmlns="http://www.w3.org/2000/svg">
+    <!-- Stili CSS per il Gantt -->
+    <style>
+        .grid-line { stroke: #e0e0e0; stroke-width: 1; }
+        .weekend-rect { fill: #f5f5f5; }
+        .task-bar { stroke-width: 1; stroke: #333; }
+        .task-label { font-family: Arial, sans-serif; font-size: 14px; fill: #333; }
+        .phase-label { font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; fill: #000; }
+        .date-label { font-family: Arial, sans-serif; font-size: 12px; fill: #666; }
+        .milestone { fill: #D92626; stroke: #8C1B1B; stroke-width: 1.5; }
+        .bar-fase1 { fill: #4285F4; }
+        .bar-fase2 { fill: #34A853; }
+        .bar-fase3 { fill: #FBBC05; }
+        .bar-fase4 { fill: #EA4335; }
+    </style>
+
+    <!-- Contenitori per il Gantt -->
+    <g id="gantt-grid"></g>
+    <g id="gantt-tasks"></g>
+
+    <!-- Script Unico per generare il Gantt -->
+    <script><![CDATA[
+        // --- 1. DEFINIZIONE DATI E COSTANTI (UNA SOLA VOLTA) ---
+        const startDate = new Date('2025-07-14T00:00:00Z');
+        const totalDays = 28;
+        const dayWidth = 35;
+        const rowHeight = 30;
+        const headerHeight = 60;
+        const leftMargin = 350;
+        const svgNS = "http://www.w3.org/2000/svg";
+
+        const tasks = [
+            { id: 'F1', name: 'FASE 1: PIANIFICAZIONE E CREATIVITÀ', start: 0, end: 5, type: 'phase' },
+            { id: '1.1', name: 'Kick-off meeting con il team', start: 0, end: 1, phase: 1 },
+            { id: '1.2', name: 'Definizione concept creativo', start: 1, end: 4, phase: 1 },
+            { id: '1.3', name: 'Stesura testi per social e DEM', start: 1, end: 4, phase: 1 },
+            { id: '1.4', name: 'Approvazione cliente (Concept & Testi)', start: 4, end: 5, phase: 1, milestone: true },
+            { id: 'F2', name: 'FASE 2: SVILUPPO ASSET E LANDING PAGE', start: 7, end: 12, type: 'phase' },
+            { id: '2.1', name: 'Creazione visual per social e DEM', start: 7, end: 10, phase: 2 },
+            { id: '2.2', name: 'Sviluppo wireframe e UI landing page', start: 7, end: 9, phase: 2 },
+            { id: '2.3', name: 'Sviluppo tecnico landing page', start: 9, end: 12, phase: 2 },
+            { id: '2.4', name: 'Approvazione cliente (Visual & LP)', start: 11, end: 12, phase: 2, milestone: true },
+            { id: 'F3', name: 'FASE 3: SETUP CAMPAGNE E LANCIO', start: 14, end: 19, type: 'phase' },
+            { id: '3.1', name: 'Setup campagne Meta Ads e Google Ads', start: 14, end: 17, phase: 3 },
+            { id: '3.2', name: 'Invio DEM alla lista contatti', start: 16, end: 17, phase: 3 },
+            { id: '3.3', name: 'Pubblicazione contenuti organici', start: 17, end: 19, phase: 3 },
+            { id: '3.4', name: 'LANCIO UFFICIALE CAMPAGNA', start: 17, end: 18, phase: 3, milestone: true },
+            { id: 'F4', name: 'FASE 4: MONITORAGGIO E REPORTISTICA', start: 21, end: 26, type: 'phase' },
+            { id: '4.1', name: 'Monitoraggio giornaliero performance', start: 21, end: 26, phase: 4 },
+            { id: '4.2', name: 'Ottimizzazione campagne in corso', start: 21, end: 24, phase: 4 },
+            { id: '4.3', name: 'Preparazione report finale', start: 24, end: 26, phase: 4 },
+            { id: '4.4', name: 'Meeting finale e chiusura progetto', start: 25, end: 26, phase: 4, milestone: true }
+        ];
+
+        const gridContainer = document.getElementById('gantt-grid');
+        const taskContainer = document.getElementById('gantt-tasks');
+
+        // --- 2. FUNZIONE PER DISEGNARE LA GRIGLIA E LE DATE ---
+        function drawGrid() {
+            for (let i = 0; i <= totalDays; i++) {
+                const x = leftMargin + i * dayWidth;
+                const currentDate = new Date(startDate);
+                currentDate.setUTCDate(startDate.getUTCDate() + i);
+                const day = currentDate.getUTCDay();
+
+                // Evidenzia weekend
+                if (day === 6 || day === 0) {
+                    const rect = document.createElementNS(svgNS, 'rect');
+                    rect.setAttribute('x', x); rect.setAttribute('y', headerHeight);
+                    rect.setAttribute('width', dayWidth); rect.setAttribute('height', tasks.length * rowHeight);
+                    rect.setAttribute('class', 'weekend-rect');
+                    gridContainer.appendChild(rect);
+                }
+
+                // Linee verticali
+                const line = document.createElementNS(svgNS, 'line');
+                line.setAttribute('x1', x); line.setAttribute('y1', headerHeight - 25); // Extend to top
+                line.setAttribute('x2', x); line.setAttribute('y2', headerHeight + tasks.length * rowHeight);
+                line.setAttribute('class', 'grid-line');
+                gridContainer.appendChild(line);
+
+                // Etichette date
+                if (i < totalDays) {
+                    const dateString = currentDate.toLocaleDateString('it-IT', { day: 'numeric', month: 'short' });
+                    const text = document.createElementNS(svgNS, 'text');
+                    text.setAttribute('x', x + dayWidth / 2); text.setAttribute('y', headerHeight - 10);
+                    text.setAttribute('text-anchor', 'middle'); text.setAttribute('class', 'date-label');
+                    text.textContent = dateString;
+                    gridContainer.appendChild(text);
+                }
+            }
+        }
+
+        // --- 3. FUNZIONE PER DISEGNARE LE ATTIVITÀ ---
+        function drawTasks() {
+            tasks.forEach((task, index) => {
+                const y = headerHeight + index * rowHeight;
+
+                // Etichetta attività
+                const labelClass = task.type === 'phase' ? 'phase-label' : 'task-label';
+                const text = document.createElementNS(svgNS, 'text');
+                text.setAttribute('x', leftMargin - 10); text.setAttribute('y', y + rowHeight / 2 + 5);
+                text.setAttribute('text-anchor', 'end'); text.setAttribute('class', labelClass);
+                text.textContent = `${task.id}. ${task.name}`;
+                taskContainer.appendChild(text);
+
+                // Barra attività
+                if (task.type !== 'phase') {
+                    const barX = leftMargin + task.start * dayWidth;
+                    const barWidth = (task.end - task.start) * dayWidth;
+                    const rect = document.createElementNS(svgNS, 'rect');
+                    rect.setAttribute('x', barX); rect.setAttribute('y', y + 5);
+                    rect.setAttribute('width', barWidth); rect.setAttribute('height', rowHeight - 10);
+                    rect.setAttribute('rx', '5'); rect.setAttribute('class', `task-bar bar-fase${task.phase}`);
+                    taskContainer.appendChild(rect);
+                }
+
+                // Milestone
+                if (task.milestone) {
+                    const milestoneX = leftMargin + task.end * dayWidth - (dayWidth / 2);
+                    const path = document.createElementNS(svgNS, 'path');
+                    path.setAttribute('d', `M ${milestoneX} ${y + rowHeight/2} l 10 10 l -10 10 l -10 -10 Z`);
+                    path.setAttribute('class', 'milestone');
+                    taskContainer.appendChild(path);
+                }
+            });
+        }
+
+        // --- 4. ESECUZIONE ---
+        drawGrid();
+        drawTasks();
+    ]]></script>
+</svg>
