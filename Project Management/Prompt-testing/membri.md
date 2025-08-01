@@ -1,12 +1,11 @@
-# Team di Sviluppo Web
+#Team di Sviluppo
 
-| Nome | Ruolo |
+| Ruolo | Nome |
 |---|---|
-| Marco | FrontEnd Dev |
-| Luca | Web Designer |
-| Giovanna | BackEnd Developer |
-| Luisa | Marketing Specialist e Copywriter |
-| Pinuccia | Grafica |
-| Placeholder | Project Manager |
-| Francesco | Customer Experience e Service Specialist |
-| Rose | Finance |
+| Project Manager | Priscilla |
+| AI Lead | Aitana |
+| Documentazione e Responsabile comunicazione | Docan |
+| Developer | Deniel |
+| Grafico | Grazia |
+| Cliente | Rubens |
+| Supporto Tecnico | Sumatra |
